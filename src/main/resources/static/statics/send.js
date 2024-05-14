@@ -6,30 +6,97 @@ const chatArea = document.getElementById('chat-area');
 const now = new Date();
 const time = now.getTime();
 
-let name = prompt("请输入用户昵称")
+let name;
+GetName();
 
-while (true) {
-    if (name == null || name == "" || name.length > 10) {
-        alert("用户名违法！请重新输入")
-        name = prompt("请输入用户昵称")
-    } else {
-        break;
+function GetName() {
+    name = prompt("请输入用户昵称")
+    while (true) {
+        if (name == null || name == "" || name.length > 10) {
+            alert("用户名违法！请重新输入")
+            name = prompt("请输入用户昵称")
+        } else {
+            break;
+        }
     }
 }
 
-let roomid = prompt("请输入加入房间");
 
-while (true) {
+
+let roomid;
+GetRoomID();
+
+function GetRoomID() {
+    roomid = prompt("请输入加入房间");
     if (roomid == null || roomid == "") {
         roomid = "public"
         document.getElementById("title").innerHTML = roomid;
+        WSConnect(name, time, roomid);
     } else {
         document.getElementById("title").innerHTML = roomid;
-        break;
+        WSConnect(name, time, roomid);
     }
 }
 
-const webscoket = new WebSocket("ws://" + window.location.host + "/WebScoketServer?name=" + name + "&id=" + time + "&roomid=" + roomid);
+var webscoket;
+
+function WSConnect(name, time, roomid) {
+    webscoket = new WebSocket("ws://" + window.location.host + "/WebScoketServer?name=" + name + "&id=" + time + "&roomid=" + roomid);
+    WSInit();
+}
+
+function WSInit() {
+
+    // 监听来自服务端的消息
+    webscoket.onmessage = function (event) {
+        const messageDiv = document.createElement('div');
+        const msg = JSON.parse(event.data);
+        const name = msg.name.substring(0, 2);
+
+        if (time == msg.id) {
+
+            messageDiv.classList.add('message');
+            messageDiv.innerHTML = `
+            <div class="message-box right">
+                <span class="time right">${getCurrentTime()}</span>
+                <p class="text">
+                    ${escapeHTML(msg.message)}
+                </p>
+            </div>
+            <span class="name right">${escapeHTML(name)}</span>
+        `;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        } else {
+            messageDiv.classList.add('message');
+            messageDiv.innerHTML = `
+            <span class="name">${escapeHTML(name)}</span>
+            <div class="message-box left">
+                <span class="time">${escapeHTML(msg.name)}</span>
+                <span class="time">${getCurrentTime()}</span>
+                <p class="text">
+                    ${escapeHTML(msg.message)}
+                </p>
+            </div>
+        `;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        console.log(msg);
+    }
+
+    webscoket.onopen = function (event) {
+
+    }
+
+    webscoket.onclose = function (event) {
+        console.log('WebSocket closed:', event);
+    }
+
+    webscoket.onerror = function (event) {
+        console.error('WebSocket error:', event);
+    }
+}
 
 // 时间获取
 function getCurrentTime() {
@@ -45,49 +112,28 @@ function escapeHTML(str) {
     });
 }
 
-// 监听来自服务端的消息
-webscoket.onmessage = function (event) {
-    const messageDiv = document.createElement('div');
-    const msg = JSON.parse(event.data);
-    const name = msg.name.substring(0, 2);
-
-    if (time == msg.id) {
-
-        messageDiv.classList.add('message');
-        messageDiv.innerHTML = `
-            <div class="message-box right">
-                <span class="time right">${getCurrentTime()}</span>
-                <p class="text">
-                    ${escapeHTML(msg.message)}
-                </p>
-            </div>
-            <span class="name right">${escapeHTML(name)}</span>
-        `;
-        chatArea.appendChild(messageDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
-    } else {
-        messageDiv.classList.add('message');
-        messageDiv.innerHTML = `
-            <span class="name">${escapeHTML(name)}</span>
-            <div class="message-box left">
-                <span class="time">${escapeHTML(msg.name)}</span>
-                <span class="time">${getCurrentTime()}</span>
-                <p class="text">
-                    ${escapeHTML(msg.message)}
-                </p>
-            </div>
-        `;
-        chatArea.appendChild(messageDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }
-    console.log(msg);
-}
-
 function send() {
     const message = textarea.value;
+    const messageDiv = document.createElement('div');
 
     if (message.trim() === '') {
         alert('不能发送空白消息');
+        return;
+    } else if (webscoket.readyState !== WebSocket.OPEN) {
+        // alert('WebSocket连接未打开，请稍后再试');
+        messageDiv.classList.add('message');
+        messageDiv.innerHTML = `
+            <span class="name">Error</span>
+            <div class="message-box left">
+                <span class="time">Error</span>
+                <span class="time">${getCurrentTime()}</span>
+                <p class="text">
+                    WebSocket未连接，请稍后再试或刷新重试
+                </p>
+            </div>
+        `;
+        chatArea.appendChild(messageDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
         return;
     }
     

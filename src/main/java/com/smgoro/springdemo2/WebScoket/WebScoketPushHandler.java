@@ -3,12 +3,16 @@ package com.smgoro.springdemo2.WebScoket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson2.JSON;
+import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.net.InetSocketAddress;
 import java.util.*;
+
+import static com.smgoro.springdemo2.WebScoket.WebScoketInterceptor.decreaseUserCountAfterDisconnection;
 
 
 public class WebScoketPushHandler extends TextWebSocketHandler {
@@ -43,8 +47,12 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
         for (int i = 0; i < userList.size(); i++) {
             WebSocketSession user = userList.get(i);
             String userRoomId = (String) user.getAttributes().get("roomid");
-            if (roomid.equals(userRoomId)) {
-                user.sendMessage(textMessage);
+            if (session.isOpen()) {
+                if (roomid.equals(userRoomId)) {
+                    user.sendMessage(textMessage);
+                }
+            } else {
+                throw new IllegalStateException("WebSocket is not open");
             }
 //            userList.get(i).sendMessage(textMessage);
         }
@@ -52,6 +60,22 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        // 获取用户名称和id
+        Map<String, Object> map = session.getAttributes();
+        String name = (String) map.get("name");
+        String id = (String) map.get("id");
+        String roomid = (String) map.get("roomid");
+        // 获取用户ip
+        InetSocketAddress remoteAddress = session.getRemoteAddress();
+        String ip = remoteAddress.getHostString();
+
+        if (name != null && id != null && roomid != null) {
+            logger.info("[用户名：" + name + " (id：" + id + ") (ip: " + ip + ") ] 退出了 " + roomid + " 聊天室");
+        } else {
+            throw new IllegalArgumentException("Invalid map values");
+        }
+
         userList.remove(session);
+        decreaseUserCountAfterDisconnection(session);
     }
 }
