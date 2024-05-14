@@ -79,10 +79,8 @@ webscoket.onmessage = function (event) {
         `;
         chatArea.appendChild(messageDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
-
     }
     console.log(msg);
-
 }
 
 function send() {
