@@ -6,21 +6,6 @@ const chatArea = document.getElementById('chat-area');
 const now = new Date();
 const time = now.getTime();
 
-let name;
-GetName();
-
-function GetName() {
-    name = prompt("请输入用户昵称")
-    while (true) {
-        if (name == null || name == "" || name.length > 10) {
-            alert("用户名违法！请重新输入")
-            name = prompt("请输入用户昵称")
-        } else {
-            break;
-        }
-    }
-}
-
 var webscoket;
 
 function WSConnect(name, time, roomid) {
@@ -35,19 +20,52 @@ function WSConnect(name, time, roomid) {
     WSInit();
 }
 
+let name;
+
+function GetName() {
+    name = document.getElementById("username").value;
+    let username = document.getElementById("username");
+    let error1 = document.getElementById("error1");
+
+    if (username.value == null || username.value == "" || username.value.length > 10) {
+        error1.style.display = "block";
+        error1.textContent = `用户名违法！请输入正确的用户名`;
+        username.value = '';
+        name = null;
+        console.error("请输入正确的用户名");
+        return;
+    } else {
+        // error1.style.display = "none";
+        name = username.value;
+        document.getElementById("login-area").style.display = "none";
+        document.getElementById("main-area").style.display = "block";
+    }
+}
+
 let roomid;
-GetRoomID();
 
 function GetRoomID() {
-    roomid = prompt("请输入加入房间");
+    // roomid = prompt("请输入加入房间");
+    roomid = document.getElementById("roomid").value;
     if (roomid == null || roomid == "") {
         roomid = "public"
-        document.getElementById("title").innerHTML = roomid;
+        document.getElementById("title").innerHTML = `<h1>${roomid}</h1>`;
         WSConnect(name, time, roomid);
     } else {
-        document.getElementById("title").innerHTML = roomid;
+        document.getElementById("title").innerHTML = `<h1>${roomid}</h1>`;
         WSConnect(name, time, roomid);
     }
+}
+
+function login() {
+    GetName();
+    GetRoomID();
+}
+
+function logout() {
+    document.getElementById("login-area").style.display = "grid";
+    document.getElementById("main-area").style.display = "none";
+    webscoket.close();
 }
 
 function isBase64(str) {

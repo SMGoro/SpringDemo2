@@ -17,17 +17,21 @@ public class WebScoketInterceptor implements HandshakeInterceptor {
     public static final int MAX_USER_PER_IP = 3;
     public static Map<String, Integer> ipUserCountMap = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(WebScoketInterceptor.class);
+    public String name;
+    public String id;
+    public String roomid;
+    public String ip;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
         // 获取用户名称和id
         ServletServerHttpRequest ServletServerHttpRequest = (ServletServerHttpRequest) request;
-        String name = ServletServerHttpRequest.getServletRequest().getParameter("name");
-        String id = ServletServerHttpRequest.getServletRequest().getParameter("id");
-        String roomid = ServletServerHttpRequest.getServletRequest().getParameter("roomid");
+        name = ServletServerHttpRequest.getServletRequest().getParameter("name");
+        id = ServletServerHttpRequest.getServletRequest().getParameter("id");
+        roomid = ServletServerHttpRequest.getServletRequest().getParameter("roomid");
         // 获取用户ip
         InetSocketAddress remoteAddress = request.getRemoteAddress();
-        String ip = remoteAddress.getHostString();
+        ip = remoteAddress.getHostString();
 
 //        System.out.println("[用户名：" + name + " (id：" + id + ") (ip:" + ip + ") ] 加入了" + roomid + "聊天室");
         logger.info("[用户名：" + name + " (id：" + id + ") (ip: " + ip + ") ] 加入了 " + roomid + " 聊天室");
@@ -53,7 +57,6 @@ public class WebScoketInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
-
     }
 
     public static void decreaseUserCountAfterDisconnection(WebSocketSession request) {

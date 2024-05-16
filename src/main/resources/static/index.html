@@ -6,41 +6,56 @@
     <title>聊天界面</title>
     <link href="./statics/style.css" rel="stylesheet">
 </head>
-<body class="container">
+<body>
+
+    <div class="container login-area" id="login-area">
+        <h1 style="text-align: center;">登录</h1>
+        <h3>用户名 *</h3>
+        <p id="error1" style="color: red; display: none">error</p>
+        <input type="text" id="username" placeholder="请输入用户名">
+        <h3>房间号</h3>
+        <input type="text" id="roomid" placeholder="请输入房间号">
+        <br>
+        <div style="text-align: center">
+            <button class="login-btn" onclick="login()">登录</button>
+        </div>
+    </div>
+
+    <div class="container" id="main-area" style="display: none;">
         <div class="header">
             <h1 id="title">聊天室</h1>
-            <button onclick="GetRoomID()">更换房间</button>
+            <button onclick="logout()" class="changeroom-btn">退出登录</button>
         </div>
         <div class="chat-area" id="chat-area">
-<!--            <div class="message">-->
-<!--                <span class="name">天乐</span>-->
-<!--                <div class="message-box left">-->
-<!--                    <span class="time">18:57</span>-->
-<!--                    <p class="text">-->
-<!--                        今天吃点啥？-->
-<!--                    </p>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--            <div class="message">-->
-<!--                <div class="message-box right">-->
-<!--                    <span class="time right">18:59</span>-->
-<!--                    <p class="text">-->
-<!--                        最近八合里周年店庆，咱们去薅羊毛呀-->
-<!--                    </p>-->
-<!--                </div>-->
-<!--                <span class="name right">热巴</span>-->
-<!--            </div>-->
+                        <div class="message">
+                            <span class="name">五郎</span>
+                            <div class="message-box left">
+                                <span class="time">18:57</span>
+                                <p class="text">
+                                    欢迎来到聊天室！
+                                </p>
+                            </div>
+                        </div>
+                        <div class="message">
+                            <div class="message-box right">
+                                <span class="time right">18:59</span>
+                                <p class="text">
+                                    开始您愉快的聊天吧~
+                                </p>
+                            </div>
+                            <span class="name right">您</span>
+                        </div>
         </div>
         <div class="tools-area">
             <input type="file" id="fileInput" name="fileInput" hidden/>
             <label for="fileInput" class="fileInput">上传图片</label>
-
         </div>
 
         <div class="input-area">
             <textarea placeholder="输入消息..."></textarea>
             <a class="send-btn" id="sendBtn">发送</a>
-        </div>        
+        </div>
+    </div>
     <script type="text/javascript" src="./statics/send.js"></script>
 </body>
 </html>
