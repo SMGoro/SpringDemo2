@@ -21,7 +21,19 @@ function GetName() {
     }
 }
 
+var webscoket;
 
+function WSConnect(name, time, roomid) {
+
+    // 判断webscoket是否链接，如果链接先断开链接
+    if (webscoket !== undefined && webscoket.readyState === WebSocket.OPEN) {
+        webscoket.close();
+    }
+
+    // 创建新的webscoket链接
+    webscoket = new WebSocket("ws://" + window.location.host + "/WebScoketServer?name=" + name + "&id=" + time + "&roomid=" + roomid);
+    WSInit();
+}
 
 let roomid;
 GetRoomID();
@@ -38,49 +50,28 @@ function GetRoomID() {
     }
 }
 
-var webscoket;
-
-function WSConnect(name, time, roomid) {
-    webscoket = new WebSocket("ws://" + window.location.host + "/WebScoketServer?name=" + name + "&id=" + time + "&roomid=" + roomid);
-    WSInit();
+function isBase64(str) {
+    const base64Pattern = /^data:image\/([a-zA-Z]+);base64,([0-9a-zA-Z+/=]+)$/;
+    return base64Pattern.test(str);
 }
 
 function WSInit() {
-
     // 监听来自服务端的消息
     webscoket.onmessage = function (event) {
         const messageDiv = document.createElement('div');
         const msg = JSON.parse(event.data);
-        const name = msg.name.substring(0, 2);
+        let type;
+
+        if (isBase64(msg.message)) {
+            type = "image";
+        } else {
+            type = "text";
+        }
 
         if (time == msg.id) {
-
-            messageDiv.classList.add('message');
-            messageDiv.innerHTML = `
-            <div class="message-box right">
-                <span class="time right">${getCurrentTime()}</span>
-                <p class="text">
-                    ${escapeHTML(msg.message)}
-                </p>
-            </div>
-            <span class="name right">${escapeHTML(name)}</span>
-        `;
-            chatArea.appendChild(messageDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+            TypeSend(type, msg.name, msg.message, "right");
         } else {
-            messageDiv.classList.add('message');
-            messageDiv.innerHTML = `
-            <span class="name">${escapeHTML(name)}</span>
-            <div class="message-box left">
-                <span class="time">${escapeHTML(msg.name)}</span>
-                <span class="time">${getCurrentTime()}</span>
-                <p class="text">
-                    ${escapeHTML(msg.message)}
-                </p>
-            </div>
-        `;
-            chatArea.appendChild(messageDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
+            TypeSend(type, msg.name, msg.message, "left");
         }
         console.log(msg);
     }
@@ -112,6 +103,46 @@ function escapeHTML(str) {
     });
 }
 
+// 发送信息
+function TypeSend(type, name, msg, pos) {
+    const messageDiv = document.createElement('div');
+    let showmsg;
+    if (type == "text") {
+        showmsg = msg;
+    } else if (type == "image") {
+        showmsg = `<img src="${msg}" alt="image" class="upload-image">`;
+    }
+    if (pos == "left") {
+        messageDiv.classList.add('message');
+        messageDiv.innerHTML = `
+            <span class="name">${escapeHTML(name.substring(0, 2))}</span>
+            <div class="message-box left">
+                <span class="fullname">${escapeHTML(name)}</span>
+                <span class="time">${getCurrentTime()}</span>
+                <p class="text">
+                    ${showmsg}
+                </p>
+            </div>
+        `;
+        chatArea.appendChild(messageDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    } else if (pos == "right") {
+        messageDiv.classList.add('message');
+        messageDiv.innerHTML = `
+            <div class="message-box right">
+                <span class="time right">${getCurrentTime()}</span>
+                <p class="text">
+                    ${showmsg}
+                </p>
+            </div>
+            <span class="name right">${escapeHTML(name.substring(0, 2))}</span>
+        `;
+        chatArea.appendChild(messageDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+}
+
 function send() {
     const message = textarea.value;
     const messageDiv = document.createElement('div');
@@ -120,20 +151,8 @@ function send() {
         alert('不能发送空白消息');
         return;
     } else if (webscoket.readyState !== WebSocket.OPEN) {
-        // alert('WebSocket连接未打开，请稍后再试');
-        messageDiv.classList.add('message');
-        messageDiv.innerHTML = `
-            <span class="name">Error</span>
-            <div class="message-box left">
-                <span class="time">Error</span>
-                <span class="time">${getCurrentTime()}</span>
-                <p class="text">
-                    WebSocket未连接，请稍后再试或刷新重试
-                </p>
-            </div>
-        `;
-        chatArea.appendChild(messageDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
+        // alert('WebSocket未连接，请稍后再试');
+        TypeSend("text", "Error", "WebSocket未连接，请稍后再试", "left");
         return;
     }
     
@@ -171,3 +190,35 @@ textarea.addEventListener('keydown', function(event) {
         }
     }
 });
+
+// 图片上传
+document.getElementById('fileInput').addEventListener('change', readFile, false);
+
+function readFile(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        console.log('No file selected.');
+        return;
+    }
+    // 计算文件大小（单位：字节）
+    const fileSize = file.size;
+
+    // 将文件大小转换为千字节（1kb = 1024字节）
+    const fileSizeInKB = fileSize / 1024;
+
+    // 判断文件大小是否超过100kb
+    if (fileSizeInKB > 100) {
+        alert('图片大小不能超过100kb');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Image = e.target.result;
+        console.log(base64Image);
+        webscoket.send(base64Image)
+        // TypeSend("image", name, base64Image, "right");
+    };
+    reader.readAsDataURL(file);
+}
+
+
