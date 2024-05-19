@@ -9,7 +9,10 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +23,8 @@ public class WebScoketInterceptor implements HandshakeInterceptor {
     public String name;
     public String id;
     public String roomid;
-    public String ip;
+    public static String ip;
+    public String time;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
@@ -31,15 +35,19 @@ public class WebScoketInterceptor implements HandshakeInterceptor {
         roomid = ServletServerHttpRequest.getServletRequest().getParameter("roomid");
         // 获取用户ip
         InetSocketAddress remoteAddress = request.getRemoteAddress();
-        ip = remoteAddress.getHostString();
+//        ip = remoteAddress.getHostString();
+        ip = getRealIp(request);
+        // 获取当前时间为time变量
+        time = getCurrentTime();
 
 //        System.out.println("[用户名：" + name + " (id：" + id + ") (ip:" + ip + ") ] 加入了" + roomid + "聊天室");
-        logger.info("[用户名：" + name + " (id：" + id + ") (ip: " + ip + ") ] 加入了 " + roomid + " 聊天室");
+        logger.info(time + " [用户名：" + name + " (id：" + id + ") (ip: " + ip + ") ] 加入了 " + roomid + " 聊天室");
         // 将对应的name和id放到用户会话中
         attributes.put("name", name);
         attributes.put("id", id);
         attributes.put("roomid", roomid);
         attributes.put("ip", ip);
+        attributes.put("time", time);
 
         // 检查当前IP地址对应的用户数量是否超过最大值
         int userCount = ipUserCountMap.getOrDefault(ip, 0);
@@ -55,18 +63,34 @@ public class WebScoketInterceptor implements HandshakeInterceptor {
         return true;
     }
 
+    // 获取当前时间
+    public String getCurrentTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date date = new Date();
+        return sdf.format(date);
+    }
+
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
+
     }
 
     public static void decreaseUserCountAfterDisconnection(WebSocketSession request) {
-        InetSocketAddress remoteAddress = request.getRemoteAddress();
-        String ip = remoteAddress.getHostString();
-
+//        InetSocketAddress remoteAddress = request.getRemoteAddress();
+//        String ip = remoteAddress.getHostString();
         int userCount = ipUserCountMap.getOrDefault(ip, 0);
         if (userCount > 0) {
             ipUserCountMap.put(ip, userCount - 1);
             logger.info("IP: " + ip + "断开连接");
         }
+    }
+
+    // 获取真实IP
+    public static String getRealIp(ServerHttpRequest request) {
+        String realIp = request.getHeaders().getFirst("X-Real-IP");
+        if (realIp == null) {
+            realIp = request.getRemoteAddress().getHostString();
+        }
+        return realIp;
     }
 }

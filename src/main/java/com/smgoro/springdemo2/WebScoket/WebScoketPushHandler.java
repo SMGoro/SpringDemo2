@@ -13,14 +13,12 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
 
 import static com.smgoro.springdemo2.WebScoket.WebScoketInterceptor.decreaseUserCountAfterDisconnection;
-import static java.nio.file.Files.createFile;
 
 
 public class WebScoketPushHandler extends TextWebSocketHandler {
@@ -30,6 +28,7 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
     public String name;
     public String id;
     public String roomid;
+    public String time;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -40,6 +39,7 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
         name = (String) map.get("name");
         id = (String) map.get("id");
         roomid = (String) map.get("roomid");
+        time = (String) map.get("time");
         sendLast50MessagesToUser(session, roomid);
     }
 
@@ -52,9 +52,10 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
         name = (String) map.get("name");
         id = (String) map.get("id");
         roomid = (String) map.get("roomid");
+        time = (String) map.get("time");
         map.put("message", message.getPayload());
 
-        logger.info("[聊天室ID：" + roomid + "] [用户 " + name + " (id: " + id + ") ] 发送内容：" + message.getPayload());
+        logger.info(time + " [聊天室ID：" + roomid + "] [用户 " + name + " (id: " + id + ") ] 发送内容：" + message.getPayload());
 //        System.out.println("[聊天室ID：" + roomid + "] [用户" + name + " (id: " + id + ") ] 发送内容：" + message.getPayload());
 
         // JSON格式字符串
@@ -86,11 +87,14 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
         String id = (String) map.get("id");
         String roomid = (String) map.get("roomid");
         // 获取用户ip
-        InetSocketAddress remoteAddress = session.getRemoteAddress();
-        String ip = remoteAddress.getHostString();
+//        InetSocketAddress remoteAddress = session.getRemoteAddress();
+//        String ip = remoteAddress.getHostString();
+        String ip = (String) map.get("ip");
+
+        String time = (String) map.get("time");
 
         if (name != null && id != null && roomid != null) {
-            logger.info("[用户名：" + name + " (id：" + id + ") (ip: " + ip + ") ] 退出了 " + roomid + " 聊天室");
+            logger.info(time + " [用户名：" + name + " (id：" + id + ") (ip: " + ip + ") ] 退出了 " + roomid + " 聊天室");
         } else {
             throw new IllegalArgumentException("Invalid map values");
         }
@@ -134,6 +138,7 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
         }
     }
 
+    // 读取聊天记录
     public static void sendLast50MessagesToUser(WebSocketSession session, String roomId) throws IOException {
         // 文件路径
         String filePath = "logs/chatrooms/" + roomId + ".json";
@@ -167,7 +172,7 @@ public class WebScoketPushHandler extends TextWebSocketHandler {
             }
         } else {
             // 如果文件不存在或不是一个文件，可以发送一个错误消息或者忽略
-            System.out.println("No chat history found for room: " + roomId);
+            logger.warn("No chat history found for room: " + roomId);
         }
     }
 

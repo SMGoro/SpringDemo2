@@ -16,8 +16,10 @@ function WSConnect(name, time, roomid) {
     }
 
     // 创建新的webscoket链接
-    webscoket = new WebSocket("ws://" + window.location.host + "/WebScoketServer?name=" + name + "&id=" + time + "&roomid=" + roomid);
+    var protocol = window.location.protocol == "https:" ? "wss" : "ws";
+    webscoket = new WebSocket(protocol + "://" + window.location.host + "/WebScoketServer?name=" + name + "&id=" + time + "&roomid=" + roomid);
     WSInit();
+
 }
 
 let name;
@@ -87,9 +89,9 @@ function WSInit() {
         }
 
         if (time == msg.id) {
-            TypeSend(type, msg.name, msg.message, "right");
+            TypeSend(type, escapeHTML(msg.name), escapeHTML(msg.message), "right", formatDate(msg.time));
         } else {
-            TypeSend(type, msg.name, msg.message, "left");
+            TypeSend(type, escapeHTML(msg.name), escapeHTML(msg.message), "left", formatDate(msg.time));
         }
         console.log(msg);
     }
@@ -114,6 +116,23 @@ function getCurrentTime() {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 }
 
+function formatDate(dateStr) {
+    let now = new Date();
+    let date = new Date(dateStr);
+
+    let yearOptions = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+    let monthDayOptions = { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+    let timeOptions = { hour: '2-digit', minute: '2-digit' };
+
+    if (date.getFullYear() !== now.getFullYear()) {
+        return date.toLocaleString([], yearOptions);
+    } else if (date.getMonth() === now.getMonth() && date.getDate() === now.getDate()) {
+        return date.toLocaleString([], timeOptions);
+    } else {
+        return date.toLocaleString([], monthDayOptions);
+    }
+}
+
 // XSS处理
 function escapeHTML(str) {
     return str.replace(/[&<>"'/]/g, function (c) {
@@ -122,7 +141,7 @@ function escapeHTML(str) {
 }
 
 // 发送信息
-function TypeSend(type, name, msg, pos) {
+function TypeSend(type, name, msg, pos, time) {
     const messageDiv = document.createElement('div');
     let showmsg;
     if (type == "text") {
@@ -133,10 +152,10 @@ function TypeSend(type, name, msg, pos) {
     if (pos == "left") {
         messageDiv.classList.add('message');
         messageDiv.innerHTML = `
-            <span class="name">${escapeHTML(name.substring(0, 2))}</span>
+            <span class="name">${name.substring(0, 2)}</span>
             <div class="message-box left">
-                <span class="fullname">${escapeHTML(name)}</span>
-                <span class="time">${getCurrentTime()}</span>
+                <span class="fullname">${name}</span>
+                <span class="time">${time}</span>
                 <p class="text">
                     ${showmsg}
                 </p>
@@ -148,12 +167,12 @@ function TypeSend(type, name, msg, pos) {
         messageDiv.classList.add('message');
         messageDiv.innerHTML = `
             <div class="message-box right">
-                <span class="time right">${getCurrentTime()}</span>
+                <span class="time right">${time}</span>
                 <p class="text">
                     ${showmsg}
                 </p>
             </div>
-            <span class="name right">${escapeHTML(name.substring(0, 2))}</span>
+            <span class="name right">${name.substring(0, 2)}</span>
         `;
         chatArea.appendChild(messageDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
